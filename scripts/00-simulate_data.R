@@ -38,35 +38,4 @@ data <- data %>%
 data
 
 #### Save Dataset ####
-write_csv(data, "data/00-simulated_data/sim_data.csv")
-
-#### Train-Test Split ####
-train_index <- createDataPartition(data$goalScored, p = 0.8, list = FALSE)
-train_data <- data[train_index, ]
-test_data <- data[-train_index, ]
-
-#### Train Predictive Model ####
-glm_model <- glm(goalScored ~ xGoal + shots_last_3min + home, data = train_data, family = binomial)
-summary(glm_model)
-
-# Random Forest
-model <- train(
-  goalScored ~ xGoal + shots_last_3min + home,
-  data = train_data,
-  method = "rf",
-  trControl = trainControl(method = "cv", number = 5)
-)
-
-#### Evaluate the Model ####
-# Predict on test data
-predictions <- round(predict(model, test_data), 0)
-
-conf_matrix <- confusionMatrix(as.factor(predictions), as.factor(test_data$goalScored))
-print(conf_matrix)
-
-# Add predictions to test_data
-test_data_with_predictions <- test_data %>%
-  mutate(predicted_goalScored = predictions)
-
-# View the combined table
-test_data_with_predictions
+write_csv(data, "data/00-simulated_data/simulated_data.csv")
