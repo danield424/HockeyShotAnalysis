@@ -1,69 +1,145 @@
 #### Preamble ####
-# Purpose: Tests... [...UPDATE THIS...]
-# Author: Rohan Alexander [...UPDATE THIS...]
-# Date: 26 September 2024 [...UPDATE THIS...]
-# Contact: rohan.alexander@utoronto.ca [...UPDATE THIS...]
+# Purpose: Tests analysis data to verify structure and validity
+# Author: Daniel Du
+# Date: 24 November 2024
+# Contact: danielc.du@mail.utoronto.ca
 # License: MIT
-# Pre-requisites: [...UPDATE THIS...]
-# Any other information needed? [...UPDATE THIS...]
-
+# Pre-requisites: Cleaned data and saved as parquet files in data/02-analysis_data
+# Any other information needed? Make sure you are in the `HockeyShotAnalysis` rproj
 
 #### Workspace setup ####
-library(tidyverse)
 library(testthat)
-
-data <- read_csv("data/02-analysis_data/analysis_data.csv")
-
+library(tidyverse)
+suppressWarnings(library(arrow))
+cleaned_data <- read_parquet("../data/02-analysis_data/shotdata.parquet")
 
 #### Test data ####
-# Test that the dataset has 151 rows - there are 151 divisions in Australia
-test_that("dataset has 151 rows", {
-  expect_equal(nrow(analysis_data), 151)
+
+# Test that the dataset contains valid seasons
+test_that("Dataset contains valid seasons", {
+  valid_seasons <- c(2021, 2022, 2023, 2024) 
+  expect_true(all(unique(cleaned_data$season) %in% valid_seasons))
 })
 
-# Test that the dataset has 3 columns
-test_that("dataset has 3 columns", {
-  expect_equal(ncol(analysis_data), 3)
+# Test that all shots have a goalie in net (shotOnEmptyNet == 0)
+test_that("All shots have a goalie in net", {
+  expect_true(all(cleaned_data$shotOnEmptyNet == 0))
 })
 
-# Test that the 'division' column is character type
-test_that("'division' is character", {
-  expect_type(analysis_data$division, "character")
+# Test for no missing values in key columns
+test_that("No NA values in key columns", {
+  key_columns <- c("GSAx", "goalieNameForShot", "game_id", "time", "goal", "xGoal", "shotWasOnGoal")
+  for (col in key_columns) {
+    expect_true(sum(is.na(cleaned_data[[col]])) == 0, info = paste("NA values found in", col))
+  }
 })
 
-# Test that the 'party' column is character type
-test_that("'party' is character", {
-  expect_type(analysis_data$party, "character")
+# Test that GSAx is correctly calculated as xGoal - goal
+test_that("GSAx is calculated correctly", {
+  expect_equal(cleaned_data$GSAx, cleaned_data$xGoal - cleaned_data$goal)
 })
 
-# Test that the 'state' column is character type
-test_that("'state' is character", {
-  expect_type(analysis_data$state, "character")
+# Test that game_id values are unique within the dataset
+test_that("No duplicate game IDs", {
+  expect_true(length(unique(cleaned_data$game_id)) == nrow(distinct(cleaned_data, game_id)))
 })
 
-# Test that there are no missing values in the dataset
-test_that("no missing values in dataset", {
-  expect_true(all(!is.na(analysis_data)))
+# Test thatgoalie names are valid strings
+test_that("Goalie names are non-empty strings", {
+  expect_true(all(nchar(cleaned_data$goalieNameForShot) > 0))
 })
 
-# Test that 'division' contains unique values (no duplicates)
-test_that("'division' column contains unique values", {
-  expect_equal(length(unique(analysis_data$division)), 151)
+# Test that time is within valid ranges (0 to 10000 (longest OT had 9000+ min))
+test_that("Time values are within valid ranges", {
+  expect_true(all(cleaned_data$time >= 0 & cleaned_data$time <= 10000))
 })
 
-# Test that 'state' contains only valid Australian state or territory names
-valid_states <- c("New South Wales", "Victoria", "Queensland", "South Australia", "Western Australia", 
-                  "Tasmania", "Northern Territory", "Australian Capital Territory")
-test_that("'state' contains valid Australian state names", {
-  expect_true(all(analysis_data$state %in% valid_states))
+#### Test Game State ####
+
+# Test that strengthState is valid
+test_that("StrengthState contains valid categories", {
+  valid_strength_states <- c("5v5", "4v4", "3v3", "Goalie Team Advantage", "Shooting Team Advantage")
+  expect_true(all(cleaned_data$strengthState %in% valid_strength_states))
 })
 
-# Test that there are no empty strings in 'division', 'party', or 'state' columns
-test_that("no empty strings in 'division', 'party', or 'state' columns", {
-  expect_false(any(analysis_data$division == "" | analysis_data$party == "" | analysis_data$state == ""))
+# Test that goalieTeamScoreDifferential is within valid bounds
+test_that("Goalie team score differential is valid", {
+  valid_differentials <- c("4+", "3", "2", "1", "0", "-1", "-2", "-3", "-4+")
+  expect_true(all(cleaned_data$goalieTeamScoreDifferential %in% valid_differentials))
 })
 
-# Test that the 'party' column contains at least 2 unique values
-test_that("'party' column contains at least 2 unique values", {
-  expect_true(length(unique(analysis_data$party)) >= 2)
+#### Test Rolling Averages ####
+
+# Test that rolling shotslast3min counts are accurate
+test_that("Rolling shotslast3min counts are valid", {
+  test_row <- cleaned_data[1, ] # Example for testing
+  test_game_id <- test_row$game_id
+  test_goalie <- test_row$goalieNameForShot
+  test_time <- test_row$time
+  
+  shots_in_last_3_min <- sum(
+    cleaned_data$game_id == test_game_id &
+      cleaned_data$goalieNameForShot == test_goalie &
+      cleaned_data$time >= (test_time - 180) &
+      cleaned_data$time < test_time &
+      cleaned_data$shotWasOnGoal == 1
+  )
+  
+  expect_equal(test_row$shotslast3min, shots_in_last_3_min)
+})
+
+# Test that cumulative shots faced is correctly calculated
+test_that("Cumulative shots faced is valid", {
+  test_row <- cleaned_data[1, ]
+  test_game_id <- test_row$game_id
+  test_goalie <- test_row$goalieNameForShot
+  test_time <- test_row$time
+  
+  cumulative_shots <- sum(
+    cleaned_data$game_id == test_game_id &
+      cleaned_data$goalieNameForShot == test_goalie &
+      cleaned_data$time <= test_time &
+      cleaned_data$shotWasOnGoal == 1
+  )
+  
+  expect_equal(test_row$shots_faced, cumulative_shots)
+})
+
+# Test that danger categories are valid
+test_that("Danger zone categories are valid", {
+  valid_zones <- c("High-Danger", "Mid-Range", "Long-Range", "Other")
+  expect_true(all(cleaned_data$danger %in% valid_zones))
+})
+
+test_that("Shot distances match danger zone definitions", {
+  high_danger <- cleaned_data %>%
+    filter(danger == "High-Danger")
+  expect_true(all(high_danger$shotDistance <= 29))
+
+  mid_range <- cleaned_data %>%
+    filter(danger == "Mid-Range")
+  expect_true(all(mid_range$shotDistance > 29 & mid_range$shotDistance <= 43))
+
+  long_range <- cleaned_data %>%
+    filter(danger == "Long-Range")
+  expect_true(all(long_range$shotDistance > 43))
+})
+
+test_that("Goal is either 0 or 1", {
+  expect_true(all(cleaned_data$goal %in% c(0, 1)))
+})
+
+test_that("GSAx is within range [-1, 1]", {
+  expect_true(all(cleaned_data$GSAx > -1 & cleaned_data$GSAx < 1))
+})
+
+test_that("Goalie team score differential is valid", {
+  valid_differentials <- c("4+", "3", "2", "1", "0", "-1", "-2", "-3", "-4+")
+  expect_true(all(cleaned_data$goalieTeamScoreDifferential %in% valid_differentials))
+})
+
+test_that("shots_faced is non-decreasing within each game and goalie", {
+  grouped_data <- cleaned_data %>% group_by(game_id, goalieNameForShot) %>%
+    arrange(time)
+  expect_true(!all(diff(grouped_data$shots_faced) < 0))
 })

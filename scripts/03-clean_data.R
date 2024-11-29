@@ -25,14 +25,15 @@ shots2022_23 <- read_parquet("data/01-raw_data/shots2022_23.parquet")
 shots2023_24 <- read_parquet("data/01-raw_data/shots2023_24.parquet")
 shots2024_25 <- read_parquet("data/01-raw_data/shots2024_25.parquet")
 shots2021to2025 <- bind_rows(
-  shots2021_22 %>% mutate(season = "2021-22"),
-  shots2022_23 %>% mutate(season = "2022-23"),
-  shots2023_24 %>% mutate(season = "2023-24"),
-  shots2024_25 %>% mutate(season = "2024-25"))
+  shots2021_22,
+  shots2022_23,
+  shots2023_24,
+  shots2024_25)
 
 #### Wrap data cleaning in a function to easily clean selected datasets
 clean <- function(shot_dataset) {
-  shot_dataset %>%
+  shot_dataset %>% drop_na(goal, goalieNameForShot, game_id) %>%
+    mutate(game_id = paste0(season, game_id)) %>% # Append season to game_id 
     # Remove shots without a goaltender in net
     filter(shotOnEmptyNet==0) %>%
     mutate(
@@ -106,6 +107,7 @@ clean <- function(shot_dataset) {
       
       # Add `goalieAtHome` variable, remove home/away columns
       goalieAtHome = ifelse(goalieTeam == homeTeamCode, "Yes", "No")) %>%
+    drop_na(strengthState) %>%
     select(-homeTeamCode, -homeTeamGoals, -awayTeamCode, -awayTeamGoals, -homeSkatersOnIce, -awaySkatersOnIce) %>%
     ### In-game performance data cleaning
     mutate(
@@ -120,6 +122,14 @@ clean <- function(shot_dataset) {
         time > 7200 & time <= 8400 ~ "4th Overtime",
         time > 8400 & time <= 9600 ~ "5th Overtime"
       )) %>%
+    # Get cumulative shots faced per minute so far in game
+    group_by(game_id, goalieNameForShot) %>%
+    mutate(
+      shots_faced = cumsum(shotWasOnGoal), # Cumulative shots faced in the game
+      shots_faced_per_min = shots_faced / (time/60), # Shots faced per min
+      GSAx_so_far = cumsum(GSAx) # Cumulative GSAx in the game
+    ) %>%
+    ungroup() %>%
     # Get rolling average stats
     # Calculate shots faced in the last 3 minutes for each goaltender
     arrange(game_id, period, time) %>% # Sort by game and time
@@ -131,15 +141,7 @@ clean <- function(shot_dataset) {
           time[i] - time[1:i] <= 180 & # shot within last 3 min
             time[i] - time[1:i] > 0 & # exclude current shot
             shotWasOnGoal[1:i] == 1)) # shot was on net
-    ) %>%
-    # Get cumulative shots faced per minute so far in game
-    ungroup() %>% group_by(game_id, goalieNameForShot) %>%
-    mutate(
-      shots_faced = cumsum(shotWasOnGoal), # Cumulative shots faced in the game
-      shots_faced_per_min = shots_faced / (time/60), # Shots faced per min
-      GSAx_so_far = cumsum(GSAx) # Cumulative GSAx in the game
-    ) %>%
-    ungroup() %>%
+    ) %>% ungroup() %>%
     
     ### In-game performance data cleaning
     # Get total game performances, and performances from recent games
@@ -170,5 +172,5 @@ write_parquet(clean(shots2021_22), "data/02-analysis_data/shotdata2021_22.parque
 write_parquet(clean(shots2022_23), "data/02-analysis_data/shotdata2022_23.parquet")
 write_parquet(clean(shots2023_24), "data/02-analysis_data/shotdata2023_24.parquet")
 write_parquet(clean(shots2024_25), "data/02-analysis_data/shotdata2024_25.parquet")
-write_parquet(clean(shots2021to2025), "data/02-analysis_data/shotdata.parquet")
-
+allshots <- clean(shots2021to2025) 
+write_parquet(allshots, "data/02-analysis_data/shotdata.parquet")
