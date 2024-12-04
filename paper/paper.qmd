@@ -26,8 +26,7 @@ library(kableExtra)
 
 # Introduction
 
-
-Few team sport athletes have as much influence on team performance as the hockey goaltender. Legendary performances, like Dominik Hasek single-handedly dragging Czechia past heavy favourites Canada and Russia to win the 1998 Olympic gold medal, are etched in the history books forever. Yet up until recently, it was hard to quantify goaltender performances; standard metrics such as wins, percentage of shots saved, and goals allowed per game did not tell the full story about goaltender's performance. The explosion in popularity of sports analytics has led to new metrics that better measure what fans see with the eye test. The most popular advanced metric, Goals Saved Above Expected (GSAx), is an all-encompassing statistic that captures a goaltender's performance relative to their peers. This is calculated by finding the difference between the goals a goaltender allows and the number a goaltender is 'expected' to allow; the expectation is quantified using an advanced model with many factors, such as MoneyPuck's model [@moneypuck]. 
+Few team sport athletes have as much influence on team performance as the hockey goaltender. Legendary performances, like Dominik Hasek single-handedly dragging Czechia past heavy favourites Canada and Russia to win the 1998 Olympic gold medal, are etched in the history books forever. Yet up until recently, it was hard to quantify goaltender performances; standard metrics such as wins, percentage of shots saved, and goals allowed per game did not tell the full story about goaltender's performance. The explosion in popularity of sports analytics has led to new metrics that better measure what fans see with the eye test. The most popular advanced metric, Goals Saved Above Expected (GSAx), is an all-encompassing statistic that captures a goaltender's performance relative to their peers. This is calculated by finding the difference between the goals a goaltender allows and the number a goaltender is 'expected' to allow; the expectation is quantified using an advanced model with many factors, such as MoneyPuck's model [@moneypuck].
 
 Although GSAx is an established metric that outlines which goaltenders consistently overperform, it still isn't clear *why* they, beyond obvious factors like skill level and experience. Questions about the impact of external factors like workload, game state, or recent engagement remain largely unanswered, with discussions often reduced to subjective terms like "mentality" or "being on a roll." This paper aims to address these gaps by analyzing the impact of external factors on a goaltender's GSAx during a game. Specifically, it investigates how variables relating to game state, in-game performance, and recent form influence a goaltender's performance within a 10-minute game interval; the estimand is the magnitude of the effects of these factors. Using a regression model, we quantify the relationship between these external variables and performance outcomes, providing a clearer understanding of what drives overperformance or underperformance.
 
@@ -35,13 +34,13 @@ Our findings show that external factors significantly shape goaltender performan
 
 The remainder of this paper is structured as follows: @sec-data introduces the data and methodology used; @sec-model describes the model used to answer our research question; @sec-results presents the key findings; @sec-discussion discusses the real-world implications of these results.
 
-\newpage 
+\newpage
 
 # Data {#sec-data}
 
-## Overview 
+## Overview
 
-To analyze the effect of external factors on goaltender performance, we use a log of 394,250 shots taken during the 2021-22 to 2024-25 NHL regular and post-seasons, provided by Moneypuck [@moneypuck]. Moneypuck is a publicly available source of hockey analytics that tracks advanced statistics, playoff odds, and event data. The shot data is updated daily from official NHL game reports, and is organized by season. For the current 2024-25 season, data is included up to November 26, 2024.
+To analyze the effect of external factors on goaltender performance, we use a log of 394,250 shots taken during the 2021-22 to 2024-25 NHL regular and post-seasons, provided by Moneypuck [(@moneypuck)]. Moneypuck is a publicly available source of hockey analytics that tracks advanced statistics, playoff odds, and event data. The shot data is updated daily from official NHL game reports, and is organized by season. For the current 2024-25 season, data is included up to November 26, 2024.
 
 The dataset includes well-documented variables essential for analyzing goaltender performance, and was selected for its reliability, comprehensive coverage, and accessibility. While other sources, such as the NHL’s API or third-party aggregators like Natural Stat Trick, offer similar information, Moneypuck’s integration of official NHL reporting, consistent data updates, and easy access make it the preferred choice. Shot data available for all years since 2008-09; we choose the 2021-22 season as the dataset starting point as this was the first full season following the COVID-19 pandemic.
 
@@ -49,9 +48,9 @@ The data spans 137 variables that provide metadata and contextual information ab
 
 The data spans 137 variables that provide metadata and contextual information about each shot. This analysis focuses on a subset of variables representing external factors hypothesized to influence goaltender performance, grouped into categories related to game state, in-game performance, and recent performance. The data was thoroughly cleaned to ensure accuracy and prepare it for analysis; the process is detailed in @sec-appendix-a.
 
-## Measurement and Limitations  {#sec-measurement}
+## Measurement and Limitations {#sec-measurement}
 
-Shots, defined as any player’s attempt to score by directing the puck at the net, are classified as an event type by the NHL. Events, along with their associated attributes and metadata, are officially recorded by Sportradar, the NHL's data partner, using AI-powered data tools [@sportradar]. Events are also counted and verified by official scorekeepers. 
+Shots, defined as any player’s attempt to score by directing the puck at the net, are classified as an event type by the NHL. Events, along with their associated attributes and metadata, are officially recorded by Sportradar, the NHL's data partner, using AI-powered data tools [(@sportradar)]. Events are also counted and verified by official scorekeepers.
 
 Both AI and human collection methods are subject to potential errors, including misclassification or missed events; the exact processes used to address data discrepancies are not disclosed, introducing a level of uncertainty. However, the likelihood of significant errors is low given the importance of accurate statistics to the NHL - statistics are critical for tracking individual and team performance, determining award winners, and informing league decisions, such as rule enforcement or changes. Therefore, Moneypuck’s integration of this information provides a reliable resource for analytics.
 
@@ -59,24 +58,23 @@ Both AI and human collection methods are subject to potential errors, including 
 
 From the cleaned dataset, we calculate response variable `GSAx_segment`, which represents the average goals saved above expected by a goaltender over a 10-minute segment. Our goal is to identify external factors that influence a goaltender's performance; below we outline the reasons for measuring performance with `GSAx_segment`. We select predictor variables representing external factors hypothesized to affect goaltender performance during the time interval. These predictors are categorized into three groups:
 
-1. Game state: 
+1.  Game state:
 
-- `isHomeTeam`: Indicates whether the goaltender is playing at home or away.
-- `isPlayoffGame`: Indicates whether the game is a regular-season or playoff game.
+-   `isHomeTeam`: Indicates whether the goaltender is playing at home or away.
+-   `isPlayoffGame`: Indicates whether the game is a regular-season or playoff game.
 
-2. In-game performance and workload: sll of these metrics are measured by first finding the value for each shot in a `GSAx_segment` based on prior shot data, then getting the final value by averaging the shot-level values across the segment.
+2.  In-game performance and workload: sll of these metrics are measured by first finding the value for each shot in a `GSAx_segment` based on prior shot data, then getting the final value by averaging the shot-level values across the segment.
 
-- `period`: the game period (e.g. 1st, 2nd).
-- `goalieTeamScoreDifferential`: the score differential for the goaltender's team (positive when winning, negative when losing).
-- `shots_faced`: a measure of the total shots the goaltender has faced in the game.
-- `shotslast3min`: the shots the goaltender has faced in the last 3 minutes.
-- `GSAx_so_far`: the goaltender's GSAx so far in the game. 
+-   `period`: the game period (e.g. 1st, 2nd).
+-   `goalieTeamScoreDifferential`: the score differential for the goaltender's team (positive when winning, negative when losing).
+-   `shots_faced`: a measure of the total shots the goaltender has faced in the game.
+-   `shotslast3min`: the shots the goaltender has faced in the last 3 minutes.
+-   `GSAx_so_far`: the goaltender's GSAx so far in the game.
 
+3.  Recent games performance:
 
-3. Recent games performance:
-
-- `last_game_GSAx`: GSAx from the previous game, representing goaltender performance in the previous game.  
-- `last_5_avg_GSAx`: average GSAx from the 5 previous games, representing performance in the previous 5 games.
+-   `last_game_GSAx`: GSAx from the previous game, representing goaltender performance in the previous game.\
+-   `last_5_avg_GSAx`: average GSAx from the 5 previous games, representing performance in the previous 5 games.
 
 Some pairs of predictors are closely related, such as `shots_faced` and `shotslast3min`, and `last_game_GSAx` and `last_5_avg_GSAx`. Potential multicollinearity arising from these relationships is addressed in @sec-model, where we also explore interactions between predictors.
 
@@ -143,6 +141,7 @@ summary_GSAx_segment <- data.frame(
   kable(format = "pipe", col.names = c("Summary Statistic", "GSAx_segment")) 
 summary_GSAx_segment
 ```
+
 From @tbl-1, the mean GSAx_segment is -0.01, close to the expected value of 0. This aligns with the idea that GSAx should average out to 0 when aggregated across many segments and goaltenders, as GSAx represents the difference between actual and expected goals. The median is slightly positive at 0.03, indicating that a slight majority of time segments may reflect slightly above-average performance. The standard deviation of 0.13 `GSAx_segment` indicates moderate variability in performance across time segments.
 
 ```{r}
@@ -194,7 +193,7 @@ As expected, the dataset primarily contains regular-season games. Additionally, 
 
 #### In-game performance and workload predictors: period, score, shots faced, shots in last 3 minutes, performance so far {#sec-period}
 
-`period` is a categorical variable representing the period the segment takes place in, created by splitting the game into 20-minute intervals. Note that since segments are 10 minutes and almost all periods are 20 minutes, every segment will take place within one period. The only exception is regular season 5 minute overtime periods, but these are guaranteed to be the game's final period, so it still holds true that no segment overlaps periods. 
+`period` is a categorical variable representing the period the segment takes place in, created by splitting the game into 20-minute intervals. Note that since segments are 10 minutes and almost all periods are 20 minutes, every segment will take place within one period. The only exception is regular season 5 minute overtime periods, but these are guaranteed to be the game's final period, so it still holds true that no segment overlaps periods.
 
 We analyze if the period has any effect on goaltender performance, choosing to represent periods categorically to capture unique performance differences in each period without assuming a linear progression. In @tbl-3 and @tbl-4 we see segments that fall in each period for regular season and playoff games.
 
@@ -229,7 +228,7 @@ segment_counts_df2 %>%
 
 Periods are similar for playoff games, with the difference being that overtime periods are the same length as regular periods, and additional overtime periods are required if there is no scoring. Roughly 13% of games require overtime.
 
-- `goalieTeamScoreDifferential` represents the average differential of the game score over the course of the 10 minute segment. It is positive if the goaltender's team is leading, 0 if the game is tied, and negative if the goaltender's team is trailing; this allows us to analyze whether goaltenders perform better when their team is winning or losing, or depending on how close the game is. Decimal values reflect score changes within the segment.
+-   `goalieTeamScoreDifferential` represents the average differential of the game score over the course of the 10 minute segment. It is positive if the goaltender's team is leading, 0 if the game is tied, and negative if the goaltender's team is trailing; this allows us to analyze whether goaltenders perform better when their team is winning or losing, or depending on how close the game is. Decimal values reflect score changes within the segment.
 
 ```{r}
 #| label: tbl-5
@@ -250,6 +249,7 @@ summary_score <- data.frame(
   kable(format = "pipe", col.names = c("Summary Statistic", "Goalie Team Score Diff.")) 
 summary_score
 ```
+
 @tbl-5 shows this stat is symmetrical, as every non-tied segment has a winning and losing goalie. Both the median and mean are 0, representing tied segments. The median and mean is 0, representing segments where the game is tied. Due to its symmetry, we can better visualize the `goalieTeamScoreDifferential` distribution by taking the absolute value in @fig-2.
 
 ```{r}
@@ -266,7 +266,7 @@ ggplot(shot_data, aes(x = abs(goalieTeamScoreDifferential))) +
   theme_minimal()
 ```
 
-Most segments occur when the game is tied, and the number of segments decreases exponentially with an increase in score differential. Segments with a larger differential are rarer, as games tend to remain close in score. 
+Most segments occur when the game is tied, and the number of segments decreases exponentially with an increase in score differential. Segments with a larger differential are rarer, as games tend to remain close in score.
 
 To analyze for winning and losing game states without the symmetry effect, we can look at the distribution for an individual goaltender such as Vancouver's Thatcher Demko. From @fig-3, many segments were tied throughout, and he spent slightly more time with his team winning. Most segments have unchanging score differentials, categorized by the integer average.
 
@@ -284,7 +284,7 @@ ggplot(shot_data %>% filter(goalieNameForShot=="Thatcher Demko"), aes(x = goalie
   theme_minimal()
 ```
 
-- `shots_faced` represents the cumulative number of shots a goaltender has faced in the game prior to each shot in the segment, averaged over each shot. This gives a measure of the goaltender's prior workload; we analyze how it influences the goaltender's ability to stop subsequent shots.
+-   `shots_faced` represents the cumulative number of shots a goaltender has faced in the game prior to each shot in the segment, averaged over each shot. This gives a measure of the goaltender's prior workload; we analyze how it influences the goaltender's ability to stop subsequent shots.
 
 ```{r}
 #| label: tbl-6
@@ -325,7 +325,7 @@ ggplot(shot_data, aes(x = shots_faced)) +
 
 We see in @fig-4 that the distribution of `shots_faced` is close to uniform for values between 0-25. Beyond 20 shots, the number of segments decreases exponentially, reflecting that fewer games reach very high shot counts.
 
-- `shotslast3min` finds the shots the goaltender has faced in the 3 minutes prior to each shot in the segment, then takes the average across all shots in the segment. Note this is not equivalent to the shots faced in the 3 minutes prior to the segment; it is a dynamic value that can vary for each shot in the segment. By measuring this value, we evaluate whether facing many shots in quick succession can improve performance by keeping the goaltender "in rhythm" or more alert, or decrease performance by increasing pressure on the goaltender.
+-   `shotslast3min` finds the shots the goaltender has faced in the 3 minutes prior to each shot in the segment, then takes the average across all shots in the segment. Note this is not equivalent to the shots faced in the 3 minutes prior to the segment; it is a dynamic value that can vary for each shot in the segment. By measuring this value, we evaluate whether facing many shots in quick succession can improve performance by keeping the goaltender "in rhythm" or more alert, or decrease performance by increasing pressure on the goaltender.
 
 ```{r}
 #| echo: false
@@ -348,7 +348,7 @@ summary_last3 <- data.frame(
 summary_last3
 ```
 
-From @tbl-7 and @fig-5, segments are roughly normally distributed with a mean of 1.3, meaning a goaltender saw ~1.3 shots in the 3 minutes prior to every shot in an average segment. Segments ranged from those with no shots in the preceding 3 minutes to segments where the goaltender saw an average of 9 shots in the last 3 minutes. 
+From @tbl-7 and @fig-5, segments are roughly normally distributed with a mean of 1.3, meaning a goaltender saw \~1.3 shots in the 3 minutes prior to every shot in an average segment. Segments ranged from those with no shots in the preceding 3 minutes to segments where the goaltender saw an average of 9 shots in the last 3 minutes.
 
 ```{r}
 #| echo: false
@@ -365,7 +365,7 @@ ggplot(shot_data, aes(x = shotslast3min)) +
   theme_minimal()
 ```
 
-- `GSAx_so_far` is the cumulative GSAx of a goaltender up to the current point in the game, prior to the shots in the segment. This variable captures how well a goaltender has performed relative to expectation throughout the game up to the current moment, enabling exploration of whether strong performance early in a game carries over into later segments, and vice versa.
+-   `GSAx_so_far` is the cumulative GSAx of a goaltender up to the current point in the game, prior to the shots in the segment. This variable captures how well a goaltender has performed relative to expectation throughout the game up to the current moment, enabling exploration of whether strong performance early in a game carries over into later segments, and vice versa.
 
 ```{r}
 #| echo: false
@@ -387,6 +387,7 @@ summary_sofar <- data.frame(
   kable(format = "pipe", col.names = c("Summary Statistic", "GSAx so far")) 
 summary_sofar
 ```
+
 In @tbl-8, the median 0.12 and mean 0.1 suggest that goaltender performance prior to segments is generally close to expectations, with slight overperformance common. In @fig-6 the distribution is approximately normal and centered near 0; the range (-5.98 to 6.06) and standard deviation 1.01 indicate considerable variability in in-game performance.
 
 ```{r}
@@ -405,8 +406,8 @@ ggplot(shot_data, aes(x = GSAx_so_far)) +
 
 #### Recent performance predictors: Last game and last 5 games
 
-- `last_game_GSAx` represents the goaltender's performance in the previous game, measured with the cumulative GSAx.
-- `last_5_avg_GSAx` representing the goaltender's performance in the previous 5 games, measured with average cumulative GSAx.
+-   `last_game_GSAx` represents the goaltender's performance in the previous game, measured with the cumulative GSAx.
+-   `last_5_avg_GSAx` representing the goaltender's performance in the previous 5 games, measured with average cumulative GSAx.
 
 With these, we can see if the previous performance or stretch of performances carries over to the next goaltender performance.
 
@@ -430,7 +431,6 @@ summary_last <- data.frame(
   kable(format = "pipe", col.names = c("Summary Statistic", "Last game GSAx")) 
 summary_last
 ```
-
 
 ```{r}
 #| echo: false
@@ -489,13 +489,13 @@ ggplot(shot_data, aes(x = last_5_avg_GSAx)) +
 
 # Model {#sec-model}
 
-Using the statistical programming software R [@citeR] as well as packages [@tidyverse], [@modelsummary] and [@caret], we develop a linear regression model with `GSAx_segment` as the response variable and our outlined factors as predictor variables. The objective of this model is to identify which predictors significantly influence goaltender performance, using p-values to assess significance and coefficients to evaluate the magnitude of their effects. 
+Using the statistical programming software R [@citeR] as well as packages [@tidyverse], [@modelsummary] and [@caret], we develop a linear regression model with `GSAx_segment` as the response variable and our outlined factors as predictor variables. The objective of this model is to identify which predictors significantly influence goaltender performance, using p-values to assess significance and coefficients to evaluate the magnitude of their effects.
 
 Alternative modeling approaches were considered, such as using shot-level or game-cumulative GSAx as the response variable. These approaches analyze different levels of granularity; we chose the segment-based model as it is detailed and interpretable. It focuses on how external factors shape performance without introducing excessive uncertainty or overly broadening the scope of analysis. This aligns with the goal of understanding the predictors' effect on the response rather than creating a highly predictive model.
 
 Background details and diagnostics are included in [Appendix -@sec-model-details]
 
-## Model 
+## Model
 
 \begin{align}
 \text{GSAx\_segment}_i &= \beta_0 
@@ -541,7 +541,7 @@ Background details and diagnostics are included in [Appendix -@sec-model-details
 
 -   $\beta_{14}$: The coefficient representing the change in `GSAx_segment` due to the interaction between `goalieTeamScoreDifferential` and `shotslast3min`, recognizing that the goaltenders may be affected differently by recent shot activity depending on the game score.
 
--   $\beta_{15}$: The coefficient representing the change in `GSAx_segment` due to the interaction between `goalieTeamScoreDifferential` and `shots_faced`.  recognizing that the goaltenders may be affected differently by a high workload depending on the game score.
+-   $\beta_{15}$: The coefficient representing the change in `GSAx_segment` due to the interaction between `goalieTeamScoreDifferential` and `shots_faced`. recognizing that the goaltenders may be affected differently by a high workload depending on the game score.
 
 -   $\beta_{16}$: The coefficient representing the change in `GSAx_segment` due to the interaction between `GSAx_so_far` and `shotslast3min`, accounting for how a goaltender’s prior performance and recent shot activity jointly impact their current performance.
 
@@ -575,10 +575,9 @@ The R-squared value indicates that only a small portion of variance in `GSAx_seg
 
 There are some contexts where the model is not appropriate for use:
 
-The model may not be suitable when interactions or dynamics beyond those included (e.g., omitted variables discussed above) significantly influence performance. 
+The model may not be suitable when interactions or dynamics beyond those included (e.g., omitted variables discussed above) significantly influence performance.
 
 The model is designed to estimate the effects of external factors on goaltender over- or underperformance rather than to maximize predictive accuracy. As such, it does not perform well when asked to precisely predict the response `GSAx_segment`.
-
 
 # Results {#sec-results}
 
@@ -601,42 +600,41 @@ From the provided table of regression coefficients, we can draw the conclusions 
 
 Binary/Categorical:
 
-- `isHomeTeam`  
-   Coefficient: `-0.003`  
-   Implication: Playing at home is associated with a slight decrease in `GSAx_segment`, suggesting that goaltenders may slightly underperform at home.  
+-   `isHomeTeam`\
+    Coefficient: `-0.003`\
+    Implication: Playing at home is associated with a slight decrease in `GSAx_segment`, suggesting that goaltenders may slightly underperform at home.
 
-- `period3rd Period`  
-   Coefficient: `0.013`  
-   Implication: Performance improves slightly in the 3rd period compared to the baseline 1st period.  
+-   `period3rd Period`\
+    Coefficient: `0.013`\
+    Implication: Performance improves slightly in the 3rd period compared to the baseline 1st period.
 
-- `periodOvertime`  
-   Coefficient: `-0.091`  
-   Implication: Goaltenders perform significantly worse during overtime compared to the baseline 1st period.  
+-   `periodOvertime`\
+    Coefficient: `-0.091`\
+    Implication: Goaltenders perform significantly worse during overtime compared to the baseline 1st period.
 
 Continuous:
 
-- `goalieTeamScoreDifferential`  
-   Coefficient: `0.011`  
-   Implication: An increase in the score differential (goalie's team scores a goal) is associated with an increase in `GSAx_segment`, indicating improved goaltender performance when leading.  
+-   `goalieTeamScoreDifferential`\
+    Coefficient: `0.011`\
+    Implication: An increase in the score differential (goalie's team scores a goal) is associated with an increase in `GSAx_segment`, indicating improved goaltender performance when leading.
 
-- `shotslast3min`  
-   Coefficient: `0.009`  
-   Implication: Facing more shots in the last three minutes is associated with a better `GSAx_segment`, suggesting that recent activity may keep the goaltender in a rhythm or alert.  
+-   `shotslast3min`\
+    Coefficient: `0.009`\
+    Implication: Facing more shots in the last three minutes is associated with a better `GSAx_segment`, suggesting that recent activity may keep the goaltender in a rhythm or alert.
 
-- `shots_faced`  
-   Coefficient: `-0.001`  
-   Implication: Each additional shot faced is associated with a small decrease in `GSAx_segment`, suggesting that increased workload slightly reduces performance.  
+-   `shots_faced`\
+    Coefficient: `-0.001`\
+    Implication: Each additional shot faced is associated with a small decrease in `GSAx_segment`, suggesting that increased workload slightly reduces performance.
 
+-   `GSAx_so_far`\
+    Coefficient: `0.022`\
+    Implication: Better cumulative performance earlier in the game is associated with improved performance during the segment, indicating momentum or consistency.
 
-- `GSAx_so_far`  
-   Coefficient: `0.022`  
-   Implication: Better cumulative performance earlier in the game is associated with improved performance during the segment, indicating momentum or consistency.  
+-   `shotslast3min * GSAx_so_far`\
+    Coefficient: `0.002`\
+    Implication: The interaction between recent activity (shots in the last three minutes) and cumulative performance (`GSAx_so_far`) suggests that recent activity amplifies the positive effects of prior performance.
 
-- `shotslast3min * GSAx_so_far`  
-   Coefficient: `0.002`  
-   Implication: The interaction between recent activity (shots in the last three minutes) and cumulative performance (`GSAx_so_far`) suggests that recent activity amplifies the positive effects of prior performance. 
-
-Effect of continuous predictors on `GSAx_segment`: for a one-unit increase in each of the 5 continuous variables/interaction terms above, `GSAx_segment` changes by the magnitude of the coefficient. For example, if the goalie's team were to score an extra goal, `GSAx_segment` would increase by 0.011. 
+Effect of continuous predictors on `GSAx_segment`: for a one-unit increase in each of the 5 continuous variables/interaction terms above, `GSAx_segment` changes by the magnitude of the coefficient. For example, if the goalie's team were to score an extra goal, `GSAx_segment` would increase by 0.011.
 
 Although the coefficients are small, they still have some significance. For example, the 0.013 coefficient for period3rd Period can be interpreted as a 1.3% increase in goaltender performance in the 3rd period compared to the 1st.
 
@@ -644,15 +642,14 @@ Although the coefficients are small, they still have some significance. For exam
 
 The coefficients for these variables are likely to be 0, meaning the effects of these variables on `GSAx_segment` are not strong enough to make conclusions:
 
-- Intercept: The baseline value itself is not particularly meaningful since most predictors will not realistically be zero.
-- `isPlayoffGame`  
-- `period2nd OT or later`  
-- `period2nd Period`  
-- `last_game_GSAx`  
-- `last_5_avg_GSAx`  
-- `isHomeTeam * isPlayoffGame` interaction
-- `goalieTeamScoreDifferential * shotslast3min` interactoin 
-
+-   Intercept: The baseline value itself is not particularly meaningful since most predictors will not realistically be zero.
+-   `isPlayoffGame`\
+-   `period2nd OT or later`\
+-   `period2nd Period`\
+-   `last_game_GSAx`\
+-   `last_5_avg_GSAx`\
+-   `isHomeTeam * isPlayoffGame` interaction
+-   `goalieTeamScoreDifferential * shotslast3min` interactoin
 
 ## Effects of Significant Terms
 
@@ -678,6 +675,7 @@ shot_data %>%
 ```
 
 ### Goalie Team Score Differential
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -709,6 +707,7 @@ diff %>% group_by(goalieTeamScoreDifferential) %>%
 @tbl-scorediff summarizes `GSAx_segment` values based on the game score, represented as the score differential of the goalie's team. As the goaltender's team gains an additional goal, the average `GSAx_segment` improves, from being negative when the goaltending team is trailing to positive when the team is ahead. The data reveals a trend where goaltenders perform better as their team increases their lead, likely due to reduced pressure or easier defensive situations. Conversely, performance decreases when the team is trailing, potentially reflecting higher-pressure situations or increased shot difficulty.
 
 ### Shots faced in last 3 minutes
+
 ```{r}
 #| echo: false
 #| label: tbl-last3
@@ -738,7 +737,7 @@ shot_data %>%
   )
 ```
 
-@tbl-last3 examines how recent shot activity influences goaltender performance. Segments with zero shot activity have the lowest average `GSAx_segment` at -0.029; this steadily increases until we reach segments with five or more shots, which have the highest average of 0.024. This trend suggests that goaltenders perform better when actively engaged, possibly due to improved focus or rhythm. Conversely, performance decreases when goaltenders are inactive for extended periods. 
+@tbl-last3 examines how recent shot activity influences goaltender performance. Segments with zero shot activity have the lowest average `GSAx_segment` at -0.029; this steadily increases until we reach segments with five or more shots, which have the highest average of 0.024. This trend suggests that goaltenders perform better when actively engaged, possibly due to improved focus or rhythm. Conversely, performance decreases when goaltenders are inactive for extended periods.
 
 ```{r}
 #| echo: false
@@ -772,7 +771,7 @@ shot_data %>%
 
 @fig-shots examines the relationship between the total number of shots faced by a goaltender so far in a game and the corresponding `GSAx_segment`. The data show a clear downward trend in performance as the cumulative number of shots faced increases. Segments where the goaltender has faced 0–5 shots have the highest average `GSAx_segment` of -0.003, and this decreases until we reach segments with 35 or more shots, with average `GSAx_segment` -0.025.
 
-This trend suggests that as goaltenders face more shots over the course of a game, their performance tends to decline. This may be due to physical fatigue or mental strain as the game prorgresses. Notably, the decline in performance accelerates beyond 25 shots, indicating that heavy workloads can have a pronounced negative impact on `GSAx_segment`. 
+This trend suggests that as goaltenders face more shots over the course of a game, their performance tends to decline. This may be due to physical fatigue or mental strain as the game prorgresses. Notably, the decline in performance accelerates beyond 25 shots, indicating that heavy workloads can have a pronounced negative impact on `GSAx_segment`.
 
 ```{r}
 #| echo: false
@@ -809,14 +808,13 @@ Not all factors examined in the model significantly influenced goaltender overpe
 
 The lack of influence from recent performance metrics challenges the popular notion of "hot streaks" among goaltenders. Similarly, the negative effect of playing at home implies that home-ice advantage has little bearing on individual goaltending performance, even if it is a factor in overall team success. These findings reveal that in-game dynamics are more likely to explain performance variability.
 
-
 ## Weaknesses and next steps
 
-As discussed, the analysis model has several limitations. First, the relatively low predictive power indicates that many unmeasured variables influence overperformance. Incorporating elements measuring factors such as team overall performance, team tactics, current health, days of rest since last game, contract situation, or game-specific psychological factors in future models could enhance the explanatory power of the analysis. New datasets could also help; for example, puck and player tracking data would greatly supplement traditional event data, providing in-game context that is currently unaccounted for. 
+As discussed, the analysis model has several limitations. First, the relatively low predictive power indicates that many unmeasured variables influence overperformance. Incorporating elements measuring factors such as team overall performance, team tactics, current health, days of rest since last game, contract situation, or game-specific psychological factors in future models could enhance the explanatory power of the analysis. New datasets could also help; for example, puck and player tracking data would greatly supplement traditional event data, providing in-game context that is currently unaccounted for.
 
 The assumption of linear relationships between predictors and the performance simplifies complex dynamics. For instance, the relationship between workload and performance may follow a non-linear pattern, with sharp declines after a certain threshold. Non-linear models or machine learning approaches could address these complexities more effectively. We could also create complex models combining segment-level data with shot-level or game-level analysis, particularly during critical moments in games.
 
-Future work could also validate these findings across different leagues, and levels of play. The NHL represents the best of the best and all of its goaltenders are of elite skill level; it would be informative to see what trends develop when analyzing data of lesser professionals or even amateurs.  Expanding the scope to include more holistic groups would contribute to a more detailed understanding of what drives goaltender performance under varying conditions.
+Future work could also validate these findings across different leagues, and levels of play. The NHL represents the best of the best and all of its goaltenders are of elite skill level; it would be informative to see what trends develop when analyzing data of lesser professionals or even amateurs. Expanding the scope to include more holistic groups would contribute to a more detailed understanding of what drives goaltender performance under varying conditions.
 
 # Extras
 
@@ -826,7 +824,7 @@ A datasheet for the dataset is found in @datasheet.
 
 \appendix
 
-# Appendix {-}
+# Appendix {.unnumbered}
 
 # Datasheet {#sec-datasheet}
 
@@ -838,13 +836,13 @@ todo: copy this from google doc/form, fix residual plots code
 
 To clean the data, we first drop erroneous entries - shots with NA values for goaltender name `goalieNameForShot`, boolean variable `goal`, or identifier `game_id`. We remove shots taken on an empty net from when the goaltender was substituted for an extra skater. In addition, we transform team variables categorized by `home` or `away` team to the goalie's team or shooting team, depending on which team is taking the shot.
 
-We calculate variables required for our analysis model: Goals Saved Above Expected (`GSAx`) for each shot is obtained by subtracting the expected goal value of the shot `xGoal` from boolean value `goal`. `xGoal` is modelled by Moneypuck based on many other shot variables [@moneypuck]. 
+We calculate variables required for our analysis model: Goals Saved Above Expected (`GSAx`) for each shot is obtained by subtracting the expected goal value of the shot `xGoal` from boolean value `goal`. `xGoal` is modelled by Moneypuck based on many other shot variables [(@moneypuck)].
 
-`period`, which is categorical, is obtained based on the `time` in seconds elapsed. Goaltender-specific variables such as `shots_faced`, `shotslast3min` and `GSAx_so_far` are obtained by counting shots and their associated GSAx. 
+`period`, which is categorical, is obtained based on the `time` in seconds elapsed. Goaltender-specific variables such as `shots_faced`, `shotslast3min` and `GSAx_so_far` are obtained by counting shots and their associated GSAx.
 
 Recent performance variables `last_game_GSAx` and `last_5_avg_GSAx` are calculated by first finding the current game's total `GSAx` and average of the last 5 games, respectively, and then shifting this data to the next game. We imputate the NA values for `last_game_GSAx` and `last_5_avg_GSAx` (occurs for the goaltender's first game) by assigning them to the median of the goalie's `last_game_GSAx` and `last_5_avg_GSAx` for the season.
 
-Prior to modelling, we create 10-minute time segments based on `time`, group all shots by segments, and average all of their variables (both predictors and response) across the segment. 
+Prior to modelling, we create 10-minute time segments based on `time`, group all shots by segments, and average all of their variables (both predictors and response) across the segment.
 
 # Data manipulation details
 
@@ -863,6 +861,7 @@ plot(model, which = 1)
 ```
 
 ### Checking relationship between predictors and residuals
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -946,6 +945,7 @@ plot_residuals("last_5_avg_GSAx")
 ```
 
 ### Normal Q-Q plot to check normality
+
 ```{r}
 #| echo: false
 #| out-width: 50%
@@ -958,29 +958,45 @@ ggplot(residuals_data, aes(sample = residuals)) +
        y = "Sample Quantiles") +
   theme_minimal()
 ```
+
 <!-- ### Generalized Variance Inflation Factor -->
 
 <!-- ```{r} -->
+
 <!-- #| echo: false -->
 
 <!-- vif <- vif(model, type = 'predictor') -->
+
 <!-- vif %>% kable(format = "pipe", col.names = c("Predictor", "GVIF", "df", "GVIF^(1/(2*Df))", "Interacts With"))  -->
+
 <!-- ``` -->
 
 <!-- ### Validating with test data -->
+
 <!-- ```{r} -->
+
 <!-- #| echo: false -->
 
 <!-- test_predictions <- predict(model, newdata = test_data) -->
+
 <!-- test_residuals <- test_data$GSAx_segment - test_predictions -->
+
 <!-- # Mean Squared Error (MSE) -->
+
 <!-- mse <- mean(test_residuals^2) -->
+
 <!-- print(paste("Mean Squared Error (MSE):", mse)) -->
+
 <!-- # R-squared for the test set -->
+
 <!-- ss_total <- sum((test_data$GSAx_segment - mean(test_data$GSAx_segment))^2) -->
+
 <!-- ss_residual <- sum(test_residuals^2) -->
+
 <!-- r_squared <- 1 - (ss_residual / ss_total) -->
+
 <!-- print(paste("R-squared on test set:", r_squared)) -->
+
 <!-- ``` -->
 
 \newpage
