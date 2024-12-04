@@ -1,12 +1,12 @@
 ---
 title: "X-Factors: External Influences of a Hockey Goaltender's Performance"
-subtitle: "My subtitle if needed"
+subtitle: "Higher Team Score Differential, Shot Activity, and Momentum Boost Goals Saved Above Expected"
 author: 
   - Daniel Du
 thanks: "Code and data are available at: [https://github.com/danield424/HockeyShotAnalysis](https://github.com/danield424/HockeyShotAnalysis)."
 date: today
 date-format: long
-abstract: "appropriately pitched to a non-specialist audience. The abstract answers: 1) what was done, 2) what was found, and 3) why this matters (all at a high level). Likely four sentences. Abstract must make clear what we learn about the world because of this paper."
+abstract: This paper investigates how external factors influence hockey goaltenders’ performance during games, using Goals Saved Above Expected (GSAx) over 10-minute time intervals as the measure of success. Variables relating to pre-game context, in-game performance, and recent form are analyzed to understand their impact on performance. Our findings reveal that goaltenders perform better when their team is leading and when they are actively engaged, but sustained workloads negatively affect outcomes. These results provide a clearer understanding of how game context shapes performance, offering practical implications for evaluating and optimizing goaltender usage.
 format: pdf
 number-sections: true
 bibliography: references.bib
@@ -26,15 +26,12 @@ library(kableExtra)
 
 # Introduction
 
-The introduction is self-contained and tells a reader everything they need to know including: 1) broader context to motivate; 2) some detail about what the paper is about; 3) a clear gap that needs to be filled; 4) what was done; 5) what was found; 6) why it is important; 7) the structure of the paper. A reader should be able to read only the introduction and know what was done, why, and what was found.
 
-Overview paragraph
+Few team sport athletes have as much influence on team performance as the hockey goaltender. Legendary performances, like Dominik Hasek single-handedly dragging Czechia past heavy favourites Canada and Russia to win the 1998 Olympic gold medal, are etched in the history books forever. Yet up until recently, it was hard to quantify goaltender performances; standard metrics such as wins, percentage of shots saved, and goals allowed per game did not tell the full story about goaltender's performance. The explosion in popularity of sports analytics has led to new metrics that better measure what fans see with the eye test. The most popular advanced metric, Goals Saved Above Expected (GSAx), is an all-encompassing statistic that captures a goaltender's performance relative to their peers. This is calculated by finding the difference between the goals a goaltender allows and the number a goaltender is 'expected' to allow; the expectation is quantified using an advanced model with many factors, such as MoneyPuck's model @moneypuck. 
 
-Few team sport athletes have as much influence on team performance as the hockey goaltender. Legendary performances, like Dominik Hasek single-handedly dragging Czechia past heavy favourites Canada and Russia to win the 1998 Olympic gold medal, are etched in the history books forever. Yet up until recently, it was hard to quantify goaltender performances; standard metrics such as wins, percentage of shots saved, and goals allowed per game did not tell the full story about goaltender's performance. The explosion in popularity of sports analytics has led to new metrics that better measure what fans see with the eye test. The most popular advanced metric, Goals Saved Above Expected (GSAx), is an all-encompassing statistic that captures a goaltender's performance relative to their peers. This is calculated by finding the difference between the goals a goaltender allows and the number a goaltender is 'expected' to allow; the expectation is quantified using an advanced model with many factors, such as MoneyPuck's model: source here. Although GSAx is an established metric that outlines which goaltenders consistently overperform, it still isn't clear *why* they, beyond obvious factors like skill level and experience. Buzzwords like "mentality" and "being on a roll" are part of the average fan's vernacular.
+Although GSAx is an established metric that outlines which goaltenders consistently overperform, it still isn't clear *why* they, beyond obvious factors like skill level and experience. Questions about the impact of external factors like workload, game state, or recent engagement remain largely unanswered, with discussions often reduced to subjective terms like "mentality" or "being on a roll." This paper aims to address these gaps by analyzing the impact of external factors on a goaltender's GSAx during a game. Specifically, it investigates how variables relating to game state, in-game performance, and recent form influence a goaltender's performance within a 10-minute game interval; the estimand is the magnitude of the effects of these factors. Using a regression model, we quantify the relationship between these external variables and performance outcomes, providing a clearer understanding of what drives overperformance or underperformance.
 
-Paragraph discussing ESTIMAND: effect of various in-game factors on the goaltender's GSAx (Goals Saved Above Expected) during a game. This paper aims to quantify the effect of these external factors, measuring how various variables affect a goaltender's performance. Research Question: What factors influence a goaltender's performance in terms of GSAx? To better understand how goaltenders perform under different conditions, we fit a model that predicts the GSAx with external variables such as x, y, z, that allows us to quantify the impact of various factors on a goalie's overperformance/underperformance.
-
-FINDINGS PARGRAPH: We found that... The trends we identified could inform player evaluation and performance predictions.
+Our findings show that external factors significantly shape goaltender performance. Increased shot activity in the preceding three minutes and positive prior performance as a proxy for momentum are associated with improved performance, while sustained workloads lead to declines. These patterns suggest that in-game context is most important in determining goaltender performance.
 
 The remainder of this paper is structured as follows: @sec-data introduces the data and methodology used; @sec-model describes the model used to answer our research question; @sec-results presents the key findings; @sec-discussion discusses the real-world implications of these results.
 
@@ -88,8 +85,6 @@ Our research focuses on how external circumstances influence goaltender performa
 By excluding these variables, we ensure the model evaluates the situational factors that drive over or underperformance relative to the expectations set by the shots faced, as captured by `GSAx_segment`.
 
 ### Outcome variable {#sec-responsevariable}
-
-todo: add discussion on GSAx with top goaltenders?
 
 `GSAx_segment` quantifies goaltender performance over 10-minute time intervals during a game. It is calculated by averaging the Goals Saved Above Expected (GSAx) of all shots faced by a goaltender within 10-minute chunks of game time. This approach aggregates performance across several shots to provide a more stable measure of goaltender ability, minimizing the influence of variability inherent within single shots. Using time-segmented data, rather than shot-specific values, allows us to evaluate patterns of performance more reliably across a game.
 
@@ -834,6 +829,10 @@ A datasheet for the dataset is found in @datasheet.
 # Appendix {-}
 
 # Datasheet {#sec-datasheet}
+
+# Surveys, sampling, and observational data
+
+todo: copy this from google doc/form, fix residual plots code
 
 # Data cleaning and preparation {#sec-appendix-a}
 
