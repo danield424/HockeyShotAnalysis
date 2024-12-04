@@ -1072,3 +1072,5 @@ If your scripts reference the folder name directly (e.g., setwd("old_folder_name
 
 setwd("new_folder_name")  # Update the folder path
 By following these steps, your project should remain intact and functional after renaming the folder. Let me know if you encounter any issues!
+
+Note: some LLM usage not recorded due to chat conversation error.
