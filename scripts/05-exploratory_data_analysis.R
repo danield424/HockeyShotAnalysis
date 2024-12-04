@@ -178,7 +178,16 @@ get_reg_vs_playoff_stats(shots)
 
 # Team performance: In-game score differential
 get_score_diff_stats <- function(shots) {
-  score_diff_stats <- shots %>%
+  score_diff_stats <- shots %>% mutate(
+    goalieTeamScoreDifferential = case_when(
+      goalieTeamGoals - shootingTeamGoals >= 4 ~ "4+",
+      goalieTeamGoals - shootingTeamGoals <= -4 ~ "-4+",
+      TRUE ~ as.character(goalieTeamGoals - shootingTeamGoals)
+      ),
+    goalieTeamScoreDifferential = factor(
+      goalieTeamScoreDifferential,
+      levels = c("4+", "3", "2", "1", "0", "-1", "-2", "-3", "-4+")
+    ))
     group_by(goalieTeamScoreDifferential) %>%
     summarize(
       count = n(),

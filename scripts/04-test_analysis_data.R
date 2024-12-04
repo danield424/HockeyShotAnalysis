@@ -56,36 +56,24 @@ test_that("Time values are within valid ranges", {
 
 #### Test Game State ####
 
-# Test that strengthState is valid
-test_that("StrengthState contains valid categories", {
-  valid_strength_states <- c("5v5", "4v4", "3v3", "Goalie Team Advantage", "Shooting Team Advantage")
-  expect_true(all(cleaned_data$strengthState %in% valid_strength_states))
-})
-
-# Test that goalieTeamScoreDifferential is within valid bounds
-test_that("Goalie team score differential is valid", {
-  valid_differentials <- c("4+", "3", "2", "1", "0", "-1", "-2", "-3", "-4+")
-  expect_true(all(cleaned_data$goalieTeamScoreDifferential %in% valid_differentials))
-})
-
 #### Test Rolling Averages ####
 
-# Test that rolling shotslast3min counts are accurate
-test_that("Rolling shotslast3min counts are valid", {
+# Test that rolling shotslast10min counts are accurate
+test_that("Rolling shotslast10min counts are valid", {
   test_row <- cleaned_data[1, ] # Example for testing
   test_game_id <- test_row$game_id
   test_goalie <- test_row$goalieNameForShot
   test_time <- test_row$time
   
-  shots_in_last_3_min <- sum(
+  shots_in_last_10_min <- sum(
     cleaned_data$game_id == test_game_id &
       cleaned_data$goalieNameForShot == test_goalie &
-      cleaned_data$time >= (test_time - 180) &
+      cleaned_data$time >= (test_time - 600) &
       cleaned_data$time < test_time &
       cleaned_data$shotWasOnGoal == 1
   )
   
-  expect_equal(test_row$shotslast3min, shots_in_last_3_min)
+  expect_equal(test_row$shotslast10min, shots_in_last_10_min)
 })
 
 # Test that cumulative shots faced is correctly calculated
@@ -99,30 +87,9 @@ test_that("Cumulative shots faced is valid", {
     cleaned_data$game_id == test_game_id &
       cleaned_data$goalieNameForShot == test_goalie &
       cleaned_data$time <= test_time &
-      cleaned_data$shotWasOnGoal == 1
-  )
+      cleaned_data$shotWasOnGoal == 1) - 1
   
   expect_equal(test_row$shots_faced, cumulative_shots)
-})
-
-# Test that danger categories are valid
-test_that("Danger zone categories are valid", {
-  valid_zones <- c("High-Danger", "Mid-Range", "Long-Range", "Other")
-  expect_true(all(cleaned_data$danger %in% valid_zones))
-})
-
-test_that("Shot distances match danger zone definitions", {
-  high_danger <- cleaned_data %>%
-    filter(danger == "High-Danger")
-  expect_true(all(high_danger$shotDistance <= 29))
-
-  mid_range <- cleaned_data %>%
-    filter(danger == "Mid-Range")
-  expect_true(all(mid_range$shotDistance > 29 & mid_range$shotDistance <= 43))
-
-  long_range <- cleaned_data %>%
-    filter(danger == "Long-Range")
-  expect_true(all(long_range$shotDistance > 43))
 })
 
 test_that("Goal is either 0 or 1", {
@@ -131,11 +98,6 @@ test_that("Goal is either 0 or 1", {
 
 test_that("GSAx is within range [-1, 1]", {
   expect_true(all(cleaned_data$GSAx > -1 & cleaned_data$GSAx < 1))
-})
-
-test_that("Goalie team score differential is valid", {
-  valid_differentials <- c("4+", "3", "2", "1", "0", "-1", "-2", "-3", "-4+")
-  expect_true(all(cleaned_data$goalieTeamScoreDifferential %in% valid_differentials))
 })
 
 test_that("shots_faced is non-decreasing within each game and goalie", {

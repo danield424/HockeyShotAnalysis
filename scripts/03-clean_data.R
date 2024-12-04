@@ -30,50 +30,16 @@ shots2021to2025 <- bind_rows(
   shots2023_24,
   shots2024_25)
 
+
 #### Wrap data cleaning in a function to easily clean selected datasets
 clean <- function(shot_dataset) {
-  shot_dataset %>% drop_na(goal, goalieNameForShot, game_id) %>%
+  clean_data <- shot_dataset %>% drop_na(goal, goalieNameForShot, game_id) %>%
     mutate(game_id = paste0(season, game_id)) %>% # Append season to game_id 
     # Remove shots without a goaltender in net
     filter(shotOnEmptyNet==0) %>%
     mutate(
       # Calculate GSAx (Goals Saved Above Expected)
       GSAx = xGoal - goal,
-      
-      ### Shot type and location data cleaning
-      # Change name of shot types
-      shotType = case_when(
-        shotType == "DEFL" ~ "Deflection",
-        shotType == "TIP" ~ "Tip",
-        shotType == "BACK" ~ "Backhand",
-        shotType == "WRAP" ~ "Wraparound",
-        shotType == "WRIST" ~ "Wrist Shot",
-        shotType == "SLAP" ~ "Slap Shot",
-        shotType == "SNAP" ~ "Snap Shot",
-        is.na(shotType) ~ "Other"),
-      
-      # Add shot danger types: given boundary lines from the faceoff dot to goal crease
-      # Left boundary line (Line 1): y = 0.7 * (x-69) - 22, faceoff dot to goal crease
-      lower_bound = 0.7 * (xCordAdjusted - 69) - 22,
-      # Right boundary line (Line 2): y = -0.7 * (x-69) + 22, faceoff dot to goal crease
-      upper_bound = -0.7 * (xCordAdjusted - 69) + 22,
-      danger = case_when(
-        shotDistance <= 29 & # High-Danger: Within 29 feet of goal
-          yCordAdjusted >= lower_bound & # Within boundary lines
-          yCordAdjusted <= upper_bound & 
-          xCordAdjusted <= 89 ~ "High-Danger", # Not behind goal line
-        shotDistance > 29 & # Mid-Range: 29-43 feet from goal
-          shotDistance <= 43 & 
-          yCordAdjusted >= lower_bound & 
-          yCordAdjusted <= upper_bound & 
-          xCordAdjusted <= 89 ~ "Mid-Range",
-        shotDistance > 43 & # Long-Range: 43+ feet but still in offensive zone
-          xCordAdjusted <= 89 & 
-          xCordAdjusted > 25 & 
-          yCordAdjusted >= lower_bound & 
-          yCordAdjusted <= upper_bound ~ "Long-Range",
-        TRUE ~ "Other"
-      ),
       
       ### Game state data cleaning
       # Change variable names to reference goalie and shooter team rather than home and away, while preserving home/away status.
@@ -86,29 +52,9 @@ clean <- function(shot_dataset) {
       shootingTeamSkaters = ifelse(shootingTeam == homeTeamCode, homeSkatersOnIce, awaySkatersOnIce),
       goalieTeamSkaters = ifelse(goalieTeam == homeTeamCode, homeSkatersOnIce, awaySkatersOnIce),
       
-      # Calculate score differential of goalie's Team, with extreme values capped.
-      goalieTeamScoreDifferential = case_when(
-        goalieTeamGoals - shootingTeamGoals >= 4 ~ "4+",
-        goalieTeamGoals - shootingTeamGoals <= -4 ~ "-4+",
-        TRUE ~ as.character(goalieTeamGoals - shootingTeamGoals)),
-      goalieTeamScoreDifferential = factor(
-        goalieTeamScoreDifferential,
-        levels = c("4+", "3", "2", "1", "0", "-1", "-2", "-3", "-4+")
-      ),
+      # Calculate score differential of goalie's Team.
+      goalieTeamScoreDifferential = goalieTeamGoals - shootingTeamGoals) %>%
       
-      # Calculate strength state, skaters on each team.
-      strengthState = case_when(
-        goalieTeamSkaters == 5 & shootingTeamSkaters == 5 ~ "5v5", # 5v5
-        goalieTeamSkaters == 4 & shootingTeamSkaters == 4 ~ "4v4", # 4v4
-        goalieTeamSkaters == 3 & shootingTeamSkaters == 3 ~ "3v3", # 3v3
-        goalieTeamSkaters > shootingTeamSkaters ~ "Goalie Team Advantage", # Goalie's team has more skaters
-        goalieTeamSkaters < shootingTeamSkaters ~ "Shooting Team Advantage" # Shooter's team has more skaters
-      ),
-      
-      # Add `goalieAtHome` variable, remove home/away columns
-      goalieAtHome = ifelse(goalieTeam == homeTeamCode, "Yes", "No")) %>%
-    drop_na(strengthState) %>%
-    select(-homeTeamCode, -homeTeamGoals, -awayTeamCode, -awayTeamGoals, -homeSkatersOnIce, -awaySkatersOnIce) %>%
     ### In-game performance data cleaning
     mutate(
       # Set the period based on time
@@ -117,17 +63,14 @@ clean <- function(shot_dataset) {
         time > 1200 & time <= 2400 ~ "2nd Period",  
         time > 2400 & time <= 3600 ~ "3rd Period",  
         time > 3600 & time <= 4800 ~ "Overtime",
-        time > 4800 & time <= 6000 ~ "2nd Overtime",
-        time > 6000 & time <= 7200 ~ "3rd Overtime",
-        time > 7200 & time <= 8400 ~ "4th Overtime",
-        time > 8400 & time <= 9600 ~ "5th Overtime"
+        time > 4800 ~ "2nd OT or later"
       )) %>%
     # Get cumulative shots faced per minute so far in game
     group_by(game_id, goalieNameForShot) %>%
     mutate(
-      shots_faced = cumsum(shotWasOnGoal), # Cumulative shots faced in the game
+      shots_faced = cumsum(shotWasOnGoal) - shotWasOnGoal, # Cumulative shots faced prior
       shots_faced_per_min = shots_faced / (time/60), # Shots faced per min
-      GSAx_so_far = cumsum(GSAx) # Cumulative GSAx in the game
+      GSAx_so_far = cumsum(GSAx) - GSAx # Cumulative GSAx in the shots prior 
     ) %>%
     ungroup() %>%
     # Get rolling average stats
@@ -141,14 +84,14 @@ clean <- function(shot_dataset) {
           time[i] - time[1:i] <= 180 & # shot within last 3 min
             time[i] - time[1:i] > 0 & # exclude current shot
             shotWasOnGoal[1:i] == 1)) # shot was on net
-    ) %>% ungroup() %>%
+    ) %>% ungroup()
     
     ### In-game performance data cleaning
     # Get total game performances, and performances from recent games
     # Include stats like goals allowed, GSAx per game and in the last 5 games
-    arrange(goalieNameForShot, game_id) %>% # Sort and group by goalie and game
+    clean_data2 <- clean_data %>% arrange(goalieNameForShot, game_id) %>% # Sort and group by goalie and game
     group_by(goalieNameForShot, game_id) %>%
-    mutate(
+    summarise(
       ga = sum(goal), # Sum goals allowed for each game
       GSAx_game = sum(GSAx), # Sum GSAx for each game
       .groups = "drop") %>%
@@ -164,13 +107,14 @@ clean <- function(shot_dataset) {
       # GSAx metrics
       last_game_GSAx = lag(GSAx_game, 1, default = NA),
       last_5_avg_GSAx = lag(zoo::rollapplyr(GSAx_game, 5, mean, fill = NA, partial = TRUE), 1, default = NA
-      )) %>% ungroup() %>% arrange(game_id, time)
-}
+      )) %>% ungroup() %>% left_join(clean_data, by = c("goalieNameForShot", "game_id")) %>% arrange(game_id, time)
+return(clean_data2)
+    }
 
 #### Clean and write data to analysis_data
 write_parquet(clean(shots2021_22), "data/02-analysis_data/shotdata2021_22.parquet")
 write_parquet(clean(shots2022_23), "data/02-analysis_data/shotdata2022_23.parquet")
 write_parquet(clean(shots2023_24), "data/02-analysis_data/shotdata2023_24.parquet")
 write_parquet(clean(shots2024_25), "data/02-analysis_data/shotdata2024_25.parquet")
-allshots <- clean(shots2021to2025) 
+allshots <- clean(shots2021to2025)
 write_parquet(allshots, "data/02-analysis_data/shotdata.parquet")
