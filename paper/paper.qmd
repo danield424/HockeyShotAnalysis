@@ -27,7 +27,7 @@ library(kableExtra)
 # Introduction
 
 
-Few team sport athletes have as much influence on team performance as the hockey goaltender. Legendary performances, like Dominik Hasek single-handedly dragging Czechia past heavy favourites Canada and Russia to win the 1998 Olympic gold medal, are etched in the history books forever. Yet up until recently, it was hard to quantify goaltender performances; standard metrics such as wins, percentage of shots saved, and goals allowed per game did not tell the full story about goaltender's performance. The explosion in popularity of sports analytics has led to new metrics that better measure what fans see with the eye test. The most popular advanced metric, Goals Saved Above Expected (GSAx), is an all-encompassing statistic that captures a goaltender's performance relative to their peers. This is calculated by finding the difference between the goals a goaltender allows and the number a goaltender is 'expected' to allow; the expectation is quantified using an advanced model with many factors, such as MoneyPuck's model @moneypuck. 
+Few team sport athletes have as much influence on team performance as the hockey goaltender. Legendary performances, like Dominik Hasek single-handedly dragging Czechia past heavy favourites Canada and Russia to win the 1998 Olympic gold medal, are etched in the history books forever. Yet up until recently, it was hard to quantify goaltender performances; standard metrics such as wins, percentage of shots saved, and goals allowed per game did not tell the full story about goaltender's performance. The explosion in popularity of sports analytics has led to new metrics that better measure what fans see with the eye test. The most popular advanced metric, Goals Saved Above Expected (GSAx), is an all-encompassing statistic that captures a goaltender's performance relative to their peers. This is calculated by finding the difference between the goals a goaltender allows and the number a goaltender is 'expected' to allow; the expectation is quantified using an advanced model with many factors, such as MoneyPuck's model [@moneypuck]. 
 
 Although GSAx is an established metric that outlines which goaltenders consistently overperform, it still isn't clear *why* they, beyond obvious factors like skill level and experience. Questions about the impact of external factors like workload, game state, or recent engagement remain largely unanswered, with discussions often reduced to subjective terms like "mentality" or "being on a roll." This paper aims to address these gaps by analyzing the impact of external factors on a goaltender's GSAx during a game. Specifically, it investigates how variables relating to game state, in-game performance, and recent form influence a goaltender's performance within a 10-minute game interval; the estimand is the magnitude of the effects of these factors. Using a regression model, we quantify the relationship between these external variables and performance outcomes, providing a clearer understanding of what drives overperformance or underperformance.
 
@@ -41,7 +41,7 @@ The remainder of this paper is structured as follows: @sec-data introduces the d
 
 ## Overview 
 
-To analyze the effect of external factors on goaltender performance, we use a log of 394,250 shots taken during the 2021-22 to 2024-25 NHL regular and post-seasons, provided by Moneypuck @moneypuck. Moneypuck is a publicly available source of hockey analytics that tracks advanced statistics, playoff odds, and event data. The shot data is updated daily from official NHL game reports, and is organized by season. For the current 2024-25 season, data is included up to November 26, 2024.
+To analyze the effect of external factors on goaltender performance, we use a log of 394,250 shots taken during the 2021-22 to 2024-25 NHL regular and post-seasons, provided by Moneypuck [@moneypuck]. Moneypuck is a publicly available source of hockey analytics that tracks advanced statistics, playoff odds, and event data. The shot data is updated daily from official NHL game reports, and is organized by season. For the current 2024-25 season, data is included up to November 26, 2024.
 
 The dataset includes well-documented variables essential for analyzing goaltender performance, and was selected for its reliability, comprehensive coverage, and accessibility. While other sources, such as the NHL’s API or third-party aggregators like Natural Stat Trick, offer similar information, Moneypuck’s integration of official NHL reporting, consistent data updates, and easy access make it the preferred choice. Shot data available for all years since 2008-09; we choose the 2021-22 season as the dataset starting point as this was the first full season following the COVID-19 pandemic.
 
@@ -51,7 +51,7 @@ The data spans 137 variables that provide metadata and contextual information ab
 
 ## Measurement and Limitations  {#sec-measurement}
 
-Shots, defined as any player’s attempt to score by directing the puck at the net, are classified as an event type by the NHL. Events, along with their associated attributes and metadata, are officially recorded by Sportradar, the NHL's data partner, using AI-powered data tools @sportradar. Events are also counted and verified by official scorekeepers. 
+Shots, defined as any player’s attempt to score by directing the puck at the net, are classified as an event type by the NHL. Events, along with their associated attributes and metadata, are officially recorded by Sportradar, the NHL's data partner, using AI-powered data tools [@sportradar]. Events are also counted and verified by official scorekeepers. 
 
 Both AI and human collection methods are subject to potential errors, including misclassification or missed events; the exact processes used to address data discrepancies are not disclosed, introducing a level of uncertainty. However, the likelihood of significant errors is low given the importance of accurate statistics to the NHL - statistics are critical for tracking individual and team performance, determining award winners, and informing league decisions, such as rule enforcement or changes. Therefore, Moneypuck’s integration of this information provides a reliable resource for analytics.
 
@@ -632,7 +632,7 @@ Continuous:
    Coefficient: `0.022`  
    Implication: Better cumulative performance earlier in the game is associated with improved performance during the segment, indicating momentum or consistency.  
 
-- `shotslast3min:GSAx_so_far`  
+- `shotslast3min * GSAx_so_far`  
    Coefficient: `0.002`  
    Implication: The interaction between recent activity (shots in the last three minutes) and cumulative performance (`GSAx_so_far`) suggests that recent activity amplifies the positive effects of prior performance. 
 
@@ -650,8 +650,8 @@ The coefficients for these variables are likely to be 0, meaning the effects of 
 - `period2nd Period`  
 - `last_game_GSAx`  
 - `last_5_avg_GSAx`  
-- `isHomeTeam:isPlayoffGame`  
-- `goalieTeamScoreDifferential:shotslast3min`  
+- `isHomeTeam * isPlayoffGame` interaction
+- `goalieTeamScoreDifferential * shotslast3min` interactoin 
 
 
 ## Effects of Significant Terms
@@ -838,7 +838,7 @@ todo: copy this from google doc/form, fix residual plots code
 
 To clean the data, we first drop erroneous entries - shots with NA values for goaltender name `goalieNameForShot`, boolean variable `goal`, or identifier `game_id`. We remove shots taken on an empty net from when the goaltender was substituted for an extra skater. In addition, we transform team variables categorized by `home` or `away` team to the goalie's team or shooting team, depending on which team is taking the shot.
 
-We calculate variables required for our analysis model: Goals Saved Above Expected (`GSAx`) for each shot is obtained by subtracting the expected goal value of the shot `xGoal` from boolean value `goal`. `xGoal` is modelled by Moneypuck based on many other shot variables @moneypuck. 
+We calculate variables required for our analysis model: Goals Saved Above Expected (`GSAx`) for each shot is obtained by subtracting the expected goal value of the shot `xGoal` from boolean value `goal`. `xGoal` is modelled by Moneypuck based on many other shot variables [@moneypuck]. 
 
 `period`, which is categorical, is obtained based on the `time` in seconds elapsed. Goaltender-specific variables such as `shots_faced`, `shotslast3min` and `GSAx_so_far` are obtained by counting shots and their associated GSAx. 
 
