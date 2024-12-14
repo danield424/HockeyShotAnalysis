@@ -818,7 +818,7 @@ Future work could also validate these findings across different leagues, and lev
 
 # Extras
 
-A datasheet for the dataset is found in @datasheet.
+A datasheet for the dataset is found in @sec-datasheet.
 
 \newpage
 
@@ -828,9 +828,83 @@ A datasheet for the dataset is found in @datasheet.
 
 # Datasheet {#sec-datasheet}
 
-# Surveys, sampling, and observational data
+The following datasheet is provided that provides essential, structured information about the MoneyPuck hockey shot dataset [@data]. It extracts questions from [@gebru2021datasheets] as a resource on information included. 
 
-todo: copy this from google doc/form, fix residual plots code
+**Motivation**
+
+1. *For what purpose was the dataset created? Was there a specific task in mind? Was there a specific gap that needed to be filled? Please provide a description.*
+    - The dataset was created to centralize and compile existing NHL data into an easily accessible resource. It is the largest publicly available collection of NHL shot data.
+2. *Who created the dataset (for example, which team, research group) and on behalf of which entity (for example, company, institution, organization)?*
+    - It was created by hockey analyst Peter Tanner for his website Moneypuck, where he runs various statistical analyses using the data.
+3. *Who funded the creation of the dataset? If there is an associated grant, please provide the name of the grantor and the grant name and number.*
+    - The NHL funds the collection of the its own league's shot data, which is collected in the dataset. 
+4. *Any other comments?*
+    - More information on Moneypuck and how data is collected is available at https://moneypuck.com/about.htm [@moneypuck].
+
+**Composition**
+
+1. *What do the instances that comprise the dataset represent (for example, documents, photos, people, countries)? Are there multiple types of instances (for example, movies, users, and ratings; people and interactions between them; nodes and edges)? Please provide a description.*
+	- They represent hockey players on NHL teams; each instance has a shooter and a goaltender, and the result of that particular shot. A shot is the only type of instance.
+2. *How many instances are there in total (of each type, if appropriate)?*
+	- There are this many instances in each section of the dataset, sorted by season:
+2021-2022 Season (121,471 instances)
+2022-2023 Season (122,026 instances)
+2023-2024 Season (122,472 instances)
+2024-2025 Season (40,156 instances) (Includes data as of 2024-12-14)
+3. *Does the dataset contain all possible instances or is it a sample (not necessarily random) of instances from a larger set? If the dataset is a sample, then what is the larger set? Is the sample representative of the larger set (for example, geographic coverage)? If so, please describe how this representativeness was validated/verified. If it is not representative of the larger set, please describe why not (for example, to cover a more diverse range of instances, because instances were withheld or unavailable).*
+	- It contains all possible instances of shots that take place during the corresponding time frame; it is not a sample of a larger set.
+4. *What data does each instance consist of? "Raw" data (for example, unprocessed text or images) or features? In either case, please provide a description.*
+	- Each instance consists of raw data columns that hold information about the shot and the event the instance takes place in.
+5. *Is there a label or target associated with each instance? If so, please provide a description.*
+	- There are shot IDs associated with each instance, and game IDs, which are different for each shot and game in the season. When combining between seasons, we alter gameID to contain the season as well.
+6. *Is any information missing from individual instances? If so, please provide a description, explaining why this information is missing (for example, because it was unavailable). This does not include intentionally removed information, but might include, for example, redacted text.*
+	- There is no information missing from individual instances.
+7. *Are relationships between individual instances made explicit (for example, users' movie ratings, social network links)? If so, please describe how these relationships are made explicit.*
+	- Shots that take place within the same game are labelled by the game_id. Shots are each labelled with the shooter and goaltender name, allowing us to group by the player.
+8. *Are there recommended data splits (for example, training, development/validation, testing)? If so, please provide a description of these splits, explaining the rationale behind them.*
+	- When creating the model, we use a 80/20 train/test split to ensure our model does not overfit. The split allows a large portion of shots to be used, while still keeping a significant portion for the testing; this is necessary as most shots do not result in goals, so there needs to be a signiifcant number of goals in the test data.
+9. *Is the dataset self-contained, or does it link to or otherwise rely on external resources (for example, websites, tweets, other datasets)? If it links to or relies on external resources, a) are there guarantees that they will exist, and remain constant, over time; b) are there official archival versions of the complete dataset (that is, including the external resources as they existed at the time the dataset was created); c) are there any restrictions (for example, licenses, fees) associated with any of the external resources that might apply to a dataset consumer? Please provide descriptions of all external resources and any restrictions associated with them, as well as links or other access points, as appropriate.*
+	- It is self-contained; the only other information potentially needed is a codebook explaining variables, which is updated when new variables are added, so there is no reliance on other resources.
+11. *Does the dataset contain data that might be considered confidential (for example, data that is protected by legal privilege or by doctor-patient confidentiality, data that includes the content of individuals' non-public communications)? If so, please provide a description.*
+	- No, NHL shots are publicly available events.
+12. *Does the dataset contain data that might be considered sensitive in any way (for example, data that reveals race or ethnic origins, sexual orientations, religious beliefs, political opinions or union memberships, or locations; financial or health data; biometric or genetic data; forms of government identification, such as social security numbers; criminal history)? If so, please provide a description.*
+	- No, all NHL players are identifiable public figures, and NHL games are not private events. The shot data itself is not related to any personal information of players, aside from their hockey affiliations.
+
+**Collection process**
+
+1. *How was the data associated with each instance acquired? Was the data directly observable (for example, raw text, movie ratings), reported by subjects (for example, survey responses), or indirectly inferred/derived from other data (for example, part-of-speech tags, model-based guesses for age or language)? If the data was reported by subjects or indirectly inferred/derived from other data, was the data validated/verified? If so, please describe how.*
+	- Data related to the shot is directly observable and can be collected both manually and by using the assistance of artificial intelligence. Shot metadata is also inferred from the NHL data of the game itself, which is validated by the NHL and easily verifiable.
+2. *What mechanisms or procedures were used to collect the data (for example, hardware apparatuses or sensors, manual human curation, software programs, software APIs)? How were these mechanisms or procedures validated?*
+  - The initial shot data is provided by the NHL's data partner Sportradar; it is unclear how they collect the data, aside from the fact that it is AI-assisted. 
+	- The data is then gathered by Moneypuck with Python and AWS. It is unclear how this is validated.
+3. *Who was involved in the data collection process (for example, students, crowdworkers, contractors) and how were they compensated (for example, how much were crowdworkers paid)?*
+	- Sportradar scorekeepers are involved in the data collection process; their compensation is not public.
+4. *Over what timeframe was the data collected? Does this timeframe match the creation timeframe of the data associated with the instances (for example, recent crawl of old news articles)? If not, please describe the timeframe in which the data associated with the instances was created.*
+	- The data was collected over the 2021-2025 NHL seasons; it is collected as events occur and is up-to-date.
+
+**Uses**
+
+1. *Has the dataset been used for any tasks already? If so, please provide a description.*
+	- Yes, Moneypuck data is used frequently by hockey analysts, both professional and amateur.
+2. *Is there a repository that links to any or all papers or systems that use the dataset? If so, please provide a link or other access point.*
+	- No.
+3. *Is there anything about the composition of the dataset or the way it was collected and preprocessed/cleaned/labeled that might impact future uses? For example, is there anything that a dataset consumer might need to know to avoid uses that could result in unfair treatment of individuals or groups (for example, stereotyping, quality of service issues) or other risks or harms (for example, legal risks, financial harms)? If so, please provide a description. Is there anything a dataset consumer could do to mitigate these risks or harms?*
+	- No.
+
+**Maintenance**
+
+1. *Who will be supporting/hosting/maintaining the dataset?*
+	- Peter Tanner, who runs the Moneypuck website, supports the dataset maintenance.
+2. *How can the owner/curator/manager of the dataset be contacted (for example, email address)?*
+	- He can be contacted at moneypuck.com@gmail.com, @pr_tanner on Twitter, or at peter-tanner.com which has more research and analytics.
+3. *Will the dataset be updated (for example, to correct labeling errors, add new instances, delete instances)? If so, please describe how often, by whom, and how updates will be communicated to dataset consumers (for example, mailing list, GitHub)?*
+	- It is updated daily to add new instances/delete erroneous instances. Since updates are very frequent and individual changes are unlikely to affect analyses, updates are not communicated.
+4. *If the dataset relates to people, are there applicable limits on the retention of the data associated with the instances (for example, were the individuals in question told that their data would be retained for a fixed period of time and then deleted)? If so, please describe these limits and explain how they will be enforced.*
+	- No, there are no limits, as all NHL game data is and will continue to remain publicly available.
+5. *Will older versions of the dataset continue to be supported/hosted/maintained? If so, please describe how. If not, please describe how its obsolescence will be communicated to dataset consumers.*
+	- Historical hockey shot data is available since 2008; since it does not need to be maintained, it is likely to be kept available. 
+6. *If others want to extend/augment/build on/contribute to the dataset, is there a mechanism for them to do so? If so, please provide a description. Will these contributions be validated/verified? If so, please describe how. If not, why not? Is there a process for communicating/distributing these contributions to dataset consumers? If so, please provide a description.*
+	- No, currently not. If there are any new variables that become relevant, it is possible that someone can contact Peter Tanner, who manages the dataset; however, this process is not made clear and it is unlikely that anyone will need to do so. This is because the dataset gathers all current relevant and available data, as provided by the NHL; if new data is available to be gathered by the NHL, it is likely that they will be the first to provide it rather than any other party.
 
 # Data cleaning and preparation {#sec-appendix-a}
 
@@ -846,7 +920,7 @@ Prior to modelling, we create 10-minute time segments based on `time`, group all
 
 # Data manipulation details
 
-Data was cleaned using @citeR and packages @arrow, @tidyverse, @zoo. Data was tested and analyzed with @testthat, @caret, and @knitr. Data visualizations were created with @kableExtra.
+Data was cleaned using [@citeR] and packages [@arrow], [@tidyverse], [@zoo]. Data was tested and analyzed with [@testthat], [@caret], and [@knitr]. Data visualizations were created with [@kableExtra].
 
 # Model details {#sec-model-details}
 
