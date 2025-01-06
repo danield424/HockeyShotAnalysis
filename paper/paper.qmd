@@ -50,7 +50,7 @@ The data spans 137 variables that provide metadata and contextual information ab
 
 ## Measurement and Limitations {#sec-measurement}
 
-Shots, defined as any player’s attempt to score by directing the puck at the net, are classified as an event type by the NHL. Events, along with their associated attributes and metadata, are officially recorded by Sportradar, the NHL's data partner, using AI-powered data tools [(@sportradar)]. Events are also counted and verified by official scorekeepers.
+Shots, defined as any player’s attempt to score by directing the puck at the net, are classified as an event type by the NHL. Events, along with their associated attributes and metadata, are officially recorded by Sportradar, the NHL's data partner, using AI-powered data tools [@sportradar]. Events are also counted and verified by official scorekeepers.
 
 Both AI and human collection methods are subject to potential errors, including misclassification or missed events; the exact processes used to address data discrepancies are not disclosed, introducing a level of uncertainty. However, the likelihood of significant errors is low given the importance of accurate statistics to the NHL - statistics are critical for tracking individual and team performance, determining award winners, and informing league decisions, such as rule enforcement or changes. Therefore, Moneypuck’s integration of this information provides a reliable resource for analytics.
 
@@ -489,7 +489,7 @@ ggplot(shot_data, aes(x = last_5_avg_GSAx)) +
 
 # Model {#sec-model}
 
-Using the statistical programming software R [@citeR] as well as packages [@tidyverse], [@modelsummary] and [@caret], we develop a linear regression model with `GSAx_segment` as the response variable and our outlined factors as predictor variables. The objective of this model is to identify which predictors significantly influence goaltender performance, using p-values to assess significance and coefficients to evaluate the magnitude of their effects.
+Using the statistical programming software R [@citeR] as well as packages tidyverse [@tidyverse], modelsummary [@modelsummary] and caret [@caret], we develop a linear regression model with `GSAx_segment` as the response variable and our outlined factors as predictor variables. The objective of this model is to identify which predictors significantly influence goaltender performance, using p-values to assess significance and coefficients to evaluate the magnitude of their effects.
 
 Alternative modeling approaches were considered, such as using shot-level or game-cumulative GSAx as the response variable. These approaches analyze different levels of granularity; we chose the segment-based model as it is detailed and interpretable. It focuses on how external factors shape performance without introducing excessive uncertainty or overly broadening the scope of analysis. This aligns with the goal of understanding the predictors' effect on the response rather than creating a highly predictive model.
 
@@ -828,7 +828,7 @@ A datasheet for the dataset is found in @sec-datasheet.
 
 # Datasheet {#sec-datasheet}
 
-The following datasheet is provided that provides essential, structured information about the MoneyPuck hockey shot dataset [@data]. It extracts questions from [@gebru2021datasheets] as a resource on information included. 
+The following datasheet is provided that provides essential, structured information about the MoneyPuck hockey shot dataset [@data]. It extracts questions from *Datasheets for Datasets* [@gebru2021datasheets] as a resource on information included. 
 
 **Motivation**
 
@@ -920,7 +920,7 @@ Prior to modelling, we create 10-minute time segments based on `time`, group all
 
 # Data manipulation details
 
-Data was cleaned using [@citeR] and packages [@arrow], [@tidyverse], [@zoo]. Data was tested and analyzed with [@testthat], [@caret], and [@knitr]. Data visualizations were created with [@kableExtra].
+Data was cleaned using R [@citeR] and packages arrow [@arrow], tidyverse [@tidyverse], zoo [@zoo]. Data was tested and analyzed with testthat [@testthat], caret [@caret], and knitr [@knitr]. Data visualizations were created with kableExtra [@kableExtra].
 
 # Model details {#sec-model-details}
 
